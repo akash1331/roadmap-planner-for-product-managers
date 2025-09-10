@@ -1,6 +1,14 @@
 import { Button } from "@/components/ui/button";
 
-export default function TimelineHeader() {
+interface TimelineHeaderProps {
+  timelineView: "quarters" | "months" | "weeks";
+  onTimelineViewChange: (view: "quarters" | "months" | "weeks") => void;
+}
+
+export default function TimelineHeader({ 
+  timelineView, 
+  onTimelineViewChange 
+}: TimelineHeaderProps) {
   return (
     <div className="bg-card border-b border-border sticky top-0 z-30">
       {/* Year Header */}
@@ -8,13 +16,28 @@ export default function TimelineHeader() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">2024 Product Roadmap</h2>
           <div className="flex items-center space-x-2">
-            <Button variant="secondary" size="sm" data-testid="button-quarters">
+            <Button 
+              variant={timelineView === "quarters" ? "secondary" : "ghost"} 
+              size="sm" 
+              onClick={() => onTimelineViewChange("quarters")}
+              data-testid="button-quarters"
+            >
               Quarters
             </Button>
-            <Button variant="ghost" size="sm" data-testid="button-months">
+            <Button 
+              variant={timelineView === "months" ? "secondary" : "ghost"} 
+              size="sm" 
+              onClick={() => onTimelineViewChange("months")}
+              data-testid="button-months"
+            >
               Months
             </Button>
-            <Button variant="ghost" size="sm" data-testid="button-weeks">
+            <Button 
+              variant={timelineView === "weeks" ? "secondary" : "ghost"} 
+              size="sm" 
+              onClick={() => onTimelineViewChange("weeks")}
+              data-testid="button-weeks"
+            >
               Weeks
             </Button>
           </div>

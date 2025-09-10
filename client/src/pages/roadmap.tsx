@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Initiative } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import TimelineHeader from "../components/roadmap/timeline-header";
 import Sidebar from "../components/roadmap/sidebar";
 import TeamSection from "../components/roadmap/team-section";
@@ -10,14 +12,40 @@ import { Download, Plus, User } from "lucide-react";
 
 export default function Roadmap() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [draggingInitiative, setDraggingInitiative] = useState<Initiative | null>(null);
+  const [timelineView, setTimelineView] = useState<"quarters" | "months" | "weeks">("quarters");
   const [filters, setFilters] = useState({
     teams: ["engineering", "design", "product", "marketing", "sales"],
     priorities: ["high", "medium", "low"],
     search: "",
   });
 
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const { data: initiatives = [], isLoading } = useQuery<Initiative[]>({
     queryKey: ["/api/initiatives"],
+  });
+
+  const updateInitiativeMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Initiative> }) => {
+      const response = await apiRequest("PATCH", `/api/initiatives/${id}`, updates);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/initiatives"] });
+      toast({
+        title: "Success",
+        description: "Initiative updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update initiative",
+        variant: "destructive",
+      });
+    },
   });
 
   const filteredInitiatives = initiatives.filter(initiative => {
@@ -35,6 +63,48 @@ export default function Roadmap() {
     { id: "product", name: "Product", count: filteredInitiatives.filter(i => i.team === "product").length },
     { id: "marketing", name: "Marketing", count: filteredInitiatives.filter(i => i.team === "marketing").length },
   ];
+
+  const handleDragStart = (initiative: Initiative, e: React.DragEvent) => {
+    setDraggingInitiative(initiative);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    setDraggingInitiative(null);
+  };
+
+  const handleDrop = (quarter: string, teamId: string, initiative: Initiative) => {
+    if (initiative.quarter === quarter && initiative.team === teamId) {
+      return; // No change needed
+    }
+
+    const updates: Partial<Initiative> = {};
+    if (initiative.quarter !== quarter) {
+      updates.quarter = quarter as "Q1" | "Q2" | "Q3" | "Q4";
+    }
+    if (initiative.team !== teamId) {
+      updates.team = teamId as "engineering" | "design" | "product" | "marketing" | "sales";
+    }
+
+    updateInitiativeMutation.mutate({ id: initiative.id, updates });
+  };
+
+  const handleExport = () => {
+    const dataStr = JSON.stringify(filteredInitiatives, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `roadmap-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Export Complete",
+      description: "Roadmap data has been exported successfully",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -56,7 +126,12 @@ export default function Roadmap() {
             </div>
           </div>
           <div className="flex items-center space-x-3">
-            <Button variant="secondary" size="sm" data-testid="button-export">
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={handleExport}
+              data-testid="button-export"
+            >
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
@@ -85,7 +160,10 @@ export default function Roadmap() {
 
         {/* Main Timeline */}
         <main className="flex-1 overflow-auto">
-          <TimelineHeader />
+          <TimelineHeader 
+            timelineView={timelineView}
+            onTimelineViewChange={setTimelineView}
+          />
           
           <div className="p-6">
             <div className="space-y-8">
@@ -94,6 +172,10 @@ export default function Roadmap() {
                   key={team.id}
                   team={team}
                   initiatives={filteredInitiatives.filter(i => i.team === team.id)}
+                  onDrop={handleDrop}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  draggingInitiative={draggingInitiative}
                 />
               ))}
             </div>

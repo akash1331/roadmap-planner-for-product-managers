@@ -8,9 +8,20 @@ interface TeamSectionProps {
     count: number;
   };
   initiatives: Initiative[];
+  onDrop?: (quarter: string, teamId: string, initiative: Initiative) => void;
+  onDragStart?: (initiative: Initiative, e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  draggingInitiative?: Initiative | null;
 }
 
-export default function TeamSection({ team, initiatives }: TeamSectionProps) {
+export default function TeamSection({ 
+  team, 
+  initiatives, 
+  onDrop, 
+  onDragStart, 
+  onDragEnd, 
+  draggingInitiative 
+}: TeamSectionProps) {
   const getTeamColor = (teamId: string) => {
     const colors = {
       engineering: "bg-team-engineering",
@@ -26,6 +37,19 @@ export default function TeamSection({ team, initiatives }: TeamSectionProps) {
   
   const getInitiativesForQuarter = (quarter: string) => {
     return initiatives.filter(initiative => initiative.quarter === quarter);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, quarter: string) => {
+    e.preventDefault();
+    const initiativeData = e.dataTransfer.getData("application/json");
+    if (initiativeData && onDrop) {
+      const initiative = JSON.parse(initiativeData);
+      onDrop(quarter, team.id, initiative);
+    }
   };
 
   return (
@@ -48,15 +72,27 @@ export default function TeamSection({ team, initiatives }: TeamSectionProps) {
             return (
               <div 
                 key={quarter}
-                className={`${quarter !== "Q4" ? "border-r border-border" : ""} p-4 space-y-3`}
+                className={`${quarter !== "Q4" ? "border-r border-border" : ""} p-4 space-y-3 min-h-32`}
                 data-testid={`quarter-${quarter}-${team.id}`}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, quarter)}
               >
                 {quarterInitiatives.map(initiative => (
-                  <InitiativeCard key={initiative.id} initiative={initiative} />
+                  <InitiativeCard 
+                    key={initiative.id} 
+                    initiative={initiative}
+                    onDragStart={onDragStart}
+                    onDragEnd={onDragEnd}
+                    isDragging={draggingInitiative?.id === initiative.id}
+                  />
                 ))}
                 
-                {/* Drop zone for drag and drop */}
-                <div className="min-h-[20px] w-full" data-drop-zone={`${quarter}-${team.id}`}></div>
+                {/* Drop zone indicator */}
+                {draggingInitiative && (
+                  <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-3 text-center text-muted-foreground text-sm">
+                    Drop here
+                  </div>
+                )}
               </div>
             );
           })}

@@ -2,9 +2,17 @@ import { Initiative } from "@shared/schema";
 
 interface InitiativeCardProps {
   initiative: Initiative;
+  onDragStart?: (initiative: Initiative, e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  isDragging?: boolean;
 }
 
-export default function InitiativeCard({ initiative }: InitiativeCardProps) {
+export default function InitiativeCard({ 
+  initiative, 
+  onDragStart, 
+  onDragEnd, 
+  isDragging = false 
+}: InitiativeCardProps) {
   const getTeamColor = (team: string) => {
     const colors = {
       engineering: "border-l-team-engineering",
@@ -34,12 +42,25 @@ export default function InitiativeCard({ initiative }: InitiativeCardProps) {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("text/plain", initiative.id);
+    e.dataTransfer.setData("application/json", JSON.stringify(initiative));
+    onDragStart?.(initiative, e);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    onDragEnd?.(e);
+  };
+
   return (
     <div 
-      className={`draggable bg-card border border-border border-l-4 ${getTeamColor(initiative.team)} rounded-lg p-3 shadow-sm cursor-grab hover:shadow-md transition-all duration-200 hover:-translate-y-1`}
+      className={`draggable bg-card border border-border border-l-4 ${getTeamColor(initiative.team)} rounded-lg p-3 shadow-sm cursor-grab hover:shadow-md transition-all duration-200 hover:-translate-y-1 ${isDragging ? 'dragging opacity-50' : ''}`}
       data-team={initiative.team}
       data-priority={initiative.priority}
       data-testid={`card-initiative-${initiative.id}`}
+      draggable={true}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       <div className="flex items-start justify-between mb-2">
         <h4 className="text-sm font-medium text-foreground line-clamp-2" data-testid={`text-title-${initiative.id}`}>
