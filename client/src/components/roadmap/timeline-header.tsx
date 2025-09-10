@@ -44,26 +44,59 @@ export default function TimelineHeader({
         </div>
       </div>
       
-      {/* Quarter Headers */}
+      {/* Time Period Headers */}
       <div className="timeline-grid px-6">
-        <div className="grid grid-cols-4 gap-0 min-w-max">
-          <div className="px-4 py-3 text-center border-r border-border">
-            <div className="font-semibold text-foreground">Q1 2024</div>
-            <div className="text-xs text-muted-foreground">Jan - Mar</div>
+        {timelineView === "quarters" && (
+          <div className="grid grid-cols-4 gap-0 min-w-max">
+            <div className="px-4 py-3 text-center border-r border-border">
+              <div className="font-semibold text-foreground">Q1 2024</div>
+              <div className="text-xs text-muted-foreground">Jan - Mar</div>
+            </div>
+            <div className="px-4 py-3 text-center border-r border-border">
+              <div className="font-semibold text-foreground">Q2 2024</div>
+              <div className="text-xs text-muted-foreground">Apr - Jun</div>
+            </div>
+            <div className="px-4 py-3 text-center border-r border-border">
+              <div className="font-semibold text-foreground">Q3 2024</div>
+              <div className="text-xs text-muted-foreground">Jul - Sep</div>
+            </div>
+            <div className="px-4 py-3 text-center">
+              <div className="font-semibold text-foreground">Q4 2024</div>
+              <div className="text-xs text-muted-foreground">Oct - Dec</div>
+            </div>
           </div>
-          <div className="px-4 py-3 text-center border-r border-border">
-            <div className="font-semibold text-foreground">Q2 2024</div>
-            <div className="text-xs text-muted-foreground">Apr - Jun</div>
+        )}
+
+        {timelineView === "months" && (
+          <div className="grid grid-cols-12 gap-0 min-w-max">
+            {[
+              "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+            ].map((month, index) => (
+              <div key={month} className={`px-2 py-3 text-center ${index < 11 ? 'border-r border-border' : ''}`}>
+                <div className="font-semibold text-foreground text-sm">{month}</div>
+                <div className="text-xs text-muted-foreground">2024</div>
+              </div>
+            ))}
           </div>
-          <div className="px-4 py-3 text-center border-r border-border">
-            <div className="font-semibold text-foreground">Q3 2024</div>
-            <div className="text-xs text-muted-foreground">Jul - Sep</div>
+        )}
+
+        {timelineView === "weeks" && (
+          <div className="grid gap-0 min-w-max overflow-x-auto" style={{ gridTemplateColumns: 'repeat(52, minmax(80px, 1fr))' }}>
+            {Array.from({ length: 52 }, (_, index) => {
+              const weekNum = index + 1;
+              const startDate = new Date(2024, 0, 1 + (index * 7));
+              const monthName = startDate.toLocaleDateString('en-US', { month: 'short' });
+              
+              return (
+                <div key={weekNum} className={`px-1 py-3 text-center ${index < 51 ? 'border-r border-border' : ''}`}>
+                  <div className="font-semibold text-foreground text-xs">W{weekNum}</div>
+                  <div className="text-xs text-muted-foreground">{monthName}</div>
+                </div>
+              );
+            })}
           </div>
-          <div className="px-4 py-3 text-center">
-            <div className="font-semibold text-foreground">Q4 2024</div>
-            <div className="text-xs text-muted-foreground">Oct - Dec</div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

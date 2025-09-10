@@ -8,7 +8,8 @@ interface TeamSectionProps {
     count: number;
   };
   initiatives: Initiative[];
-  onDrop?: (quarter: string, teamId: string, initiative: Initiative) => void;
+  timelineView: "quarters" | "months" | "weeks";
+  onDrop?: (period: string, teamId: string, initiative: Initiative) => void;
   onDragStart?: (initiative: Initiative, e: React.DragEvent) => void;
   onDragEnd?: (e: React.DragEvent) => void;
   draggingInitiative?: Initiative | null;
@@ -17,6 +18,7 @@ interface TeamSectionProps {
 export default function TeamSection({ 
   team, 
   initiatives, 
+  timelineView,
   onDrop, 
   onDragStart, 
   onDragEnd, 
@@ -33,22 +35,63 @@ export default function TeamSection({
     return colors[teamId as keyof typeof colors] || "bg-gray-400";
   };
 
-  const quarters = ["Q1", "Q2", "Q3", "Q4"];
-  
-  const getInitiativesForQuarter = (quarter: string) => {
-    return initiatives.filter(initiative => initiative.quarter === quarter);
+  const getTimePeriods = () => {
+    switch (timelineView) {
+      case "quarters":
+        return ["Q1", "Q2", "Q3", "Q4"];
+      case "months":
+        return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      case "weeks":
+        return Array.from({ length: 52 }, (_, i) => `W${i + 1}`);
+      default:
+        return ["Q1", "Q2", "Q3", "Q4"];
+    }
+  };
+
+  const getInitiativesForPeriod = (period: string) => {
+    switch (timelineView) {
+      case "quarters":
+        return initiatives.filter(initiative => initiative.quarter === period);
+      case "months":
+        const monthIndex = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].indexOf(period);
+        return initiatives.filter(initiative => {
+          const startDate = new Date(initiative.startDate);
+          const endDate = new Date(initiative.endDate);
+          return startDate.getMonth() <= monthIndex && endDate.getMonth() >= monthIndex;
+        });
+      case "weeks":
+        const weekNum = parseInt(period.substring(1));
+        return initiatives.filter(initiative => {
+          const startDate = new Date(initiative.startDate);
+          const endDate = new Date(initiative.endDate);
+          const startWeek = Math.ceil((startDate.getTime() - new Date(2024, 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000));
+          const endWeek = Math.ceil((endDate.getTime() - new Date(2024, 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000));
+          return startWeek <= weekNum && endWeek >= weekNum;
+        });
+      default:
+        return [];
+    }
+  };
+
+  const getGridCols = () => {
+    switch (timelineView) {
+      case "quarters": return "grid-cols-4";
+      case "months": return "grid-cols-12";
+      case "weeks": return "grid-flow-col auto-cols-[80px]";
+      default: return "grid-cols-4";
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent, quarter: string) => {
+  const handleDrop = (e: React.DragEvent, period: string) => {
     e.preventDefault();
     const initiativeData = e.dataTransfer.getData("application/json");
     if (initiativeData && onDrop) {
       const initiative = JSON.parse(initiativeData);
-      onDrop(quarter, team.id, initiative);
+      onDrop(period, team.id, initiative);
     }
   };
 
@@ -65,19 +108,20 @@ export default function TeamSection({
       </div>
       
       <div className="timeline-grid relative">
-        <div className="grid grid-cols-4 gap-0 min-h-32">
-          {quarters.map(quarter => {
-            const quarterInitiatives = getInitiativesForQuarter(quarter);
+        <div className={`grid gap-0 min-h-32 ${getGridCols()}`}>
+          {getTimePeriods().map((period, index) => {
+            const periodInitiatives = getInitiativesForPeriod(period);
+            const isLastPeriod = index === getTimePeriods().length - 1;
             
             return (
               <div 
-                key={quarter}
-                className={`${quarter !== "Q4" ? "border-r border-border" : ""} p-4 space-y-3 min-h-32`}
-                data-testid={`quarter-${quarter}-${team.id}`}
+                key={period}
+                className={`${!isLastPeriod ? "border-r border-border" : ""} p-2 space-y-2 min-h-32 ${timelineView === "weeks" ? "min-w-[80px]" : ""}`}
+                data-testid={`period-${period}-${team.id}`}
                 onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, quarter)}
+                onDrop={(e) => handleDrop(e, period)}
               >
-                {quarterInitiatives.map(initiative => (
+                {periodInitiatives.map(initiative => (
                   <InitiativeCard 
                     key={initiative.id} 
                     initiative={initiative}
@@ -88,8 +132,8 @@ export default function TeamSection({
                 ))}
                 
                 {/* Drop zone indicator */}
-                {draggingInitiative && (
-                  <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-3 text-center text-muted-foreground text-sm">
+                {draggingInitiative && periodInitiatives.length === 0 && (
+                  <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-2 text-center text-muted-foreground text-xs">
                     Drop here
                   </div>
                 )}
