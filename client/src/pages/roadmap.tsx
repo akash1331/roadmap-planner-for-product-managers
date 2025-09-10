@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Initiative } from "@shared/schema";
-import TimelineHeader from "@/components/roadmap/timeline-header";
-import Sidebar from "@/components/roadmap/sidebar";
-import TeamSection from "@/components/roadmap/team-section";
-import NewInitiativeModal from "@/components/roadmap/new-initiative-modal";
+import TimelineHeader from "../components/roadmap/timeline-header";
+import Sidebar from "../components/roadmap/sidebar";
+import TeamSection from "../components/roadmap/team-section";
+import NewInitiativeModal from "../components/roadmap/new-initiative-modal";
 import { Button } from "@/components/ui/button";
 import { Download, Plus, User } from "lucide-react";
 

@@ -58,7 +58,7 @@ export default function InitiativeCard({ initiative }: InitiativeCardProps) {
         </span>
         
         <div className="flex -space-x-1">
-          {initiative.assignees.slice(0, 3).map((assignee, index) => (
+          {(initiative.assignees || []).slice(0, 3).map((assignee, index) => (
             <div 
               key={assignee}
               className="w-5 h-5 bg-primary rounded-full border-2 border-white text-xs text-primary-foreground flex items-center justify-center"
@@ -68,9 +68,9 @@ export default function InitiativeCard({ initiative }: InitiativeCardProps) {
               {getInitials(assignee)}
             </div>
           ))}
-          {initiative.assignees.length > 3 && (
+          {(initiative.assignees || []).length > 3 && (
             <div className="w-5 h-5 bg-muted rounded-full border-2 border-white text-xs text-muted-foreground flex items-center justify-center">
-              +{initiative.assignees.length - 3}
+              +{(initiative.assignees || []).length - 3}
             </div>
           )}
         </div>
