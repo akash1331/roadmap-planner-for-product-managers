@@ -13,7 +13,8 @@ import { Download, Plus, User } from "lucide-react";
 export default function Roadmap() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [draggingInitiative, setDraggingInitiative] = useState<Initiative | null>(null);
-  const [timelineView, setTimelineView] = useState<"quarters" | "months" | "weeks">("quarters");
+  const [timelineView, setTimelineView] = useState<"quarters" | "months" | "weeks" | "days">("quarters");
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); // For daily view
   const [filters, setFilters] = useState({
     teams: ["engineering", "design", "product", "marketing", "sales"],
     priorities: ["high", "medium", "low"],
