@@ -1,4 +1,4 @@
-import { type Initiative, type InsertInitiative } from "@shared/schema";
+import { type Initiative, type InsertInitiative, type Team, type InsertTeam } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -9,19 +9,68 @@ export interface IStorage {
   createInitiative(initiative: InsertInitiative): Promise<Initiative>;
   updateInitiative(id: string, updates: Partial<Initiative>): Promise<Initiative | undefined>;
   deleteInitiative(id: string): Promise<boolean>;
+  getTeams(): Promise<Team[]>;
+  createTeam(team: InsertTeam): Promise<Team>;
+  updateTeam(id: string, updates: Partial<Team>): Promise<Team | undefined>;
+  deleteTeam(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, any>;
   private initiatives: Map<string, Initiative>;
+  private teams: Map<string, Team>;
 
   constructor() {
     this.users = new Map();
     this.initiatives = new Map();
+    this.teams = new Map();
     this.seedInitialData();
   }
 
   private seedInitialData() {
+    // Seed default teams
+    const defaultTeams: Team[] = [
+      {
+        id: "engineering",
+        name: "Engineering", 
+        color: "#3b82f6",
+        description: "Software development and technical implementation",
+        createdAt: new Date(),
+      },
+      {
+        id: "design",
+        name: "Design",
+        color: "#10b981", 
+        description: "User experience and visual design",
+        createdAt: new Date(),
+      },
+      {
+        id: "product",
+        name: "Product",
+        color: "#f59e0b",
+        description: "Product strategy and management",
+        createdAt: new Date(),
+      },
+      {
+        id: "marketing",
+        name: "Marketing",
+        color: "#8b5cf6",
+        description: "Marketing and growth initiatives",
+        createdAt: new Date(),
+      },
+      {
+        id: "sales",
+        name: "Sales",
+        color: "#ef4444",
+        description: "Sales and revenue generation",
+        createdAt: new Date(),
+      },
+    ];
+
+    defaultTeams.forEach(team => {
+      this.teams.set(team.id, team);
+    });
+
     // Seed with sample initiatives for demonstration
     const sampleInitiatives: Initiative[] = [
       {
@@ -161,6 +210,35 @@ export class MemStorage implements IStorage {
 
   async deleteInitiative(id: string): Promise<boolean> {
     return this.initiatives.delete(id);
+  }
+
+  async getTeams(): Promise<Team[]> {
+    return Array.from(this.teams.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async createTeam(team: InsertTeam): Promise<Team> {
+    const id = team.name.toLowerCase().replace(/\s+/g, '-');
+    const newTeam: Team = {
+      ...team,
+      id,
+      description: team.description || null,
+      createdAt: new Date(),
+    };
+    this.teams.set(id, newTeam);
+    return newTeam;
+  }
+
+  async updateTeam(id: string, updates: Partial<Team>): Promise<Team | undefined> {
+    const team = this.teams.get(id);
+    if (!team) return undefined;
+
+    const updated = { ...team, ...updates };
+    this.teams.set(id, updated);
+    return updated;
+  }
+
+  async deleteTeam(id: string): Promise<boolean> {
+    return this.teams.delete(id);
   }
 }
 

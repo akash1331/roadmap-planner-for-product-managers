@@ -1,22 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Initiative } from "@shared/schema";
+import { Initiative, Team } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import TimelineHeader from "../components/roadmap/timeline-header";
 import Sidebar from "../components/roadmap/sidebar";
 import TeamSection from "../components/roadmap/team-section";
 import NewInitiativeModal from "../components/roadmap/new-initiative-modal";
+import TeamManagementModal from "../components/roadmap/team-management-modal";
 import { Button } from "@/components/ui/button";
-import { Download, Plus, User } from "lucide-react";
+import { Download, Plus, User, Settings } from "lucide-react";
 
 export default function Roadmap() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [draggingInitiative, setDraggingInitiative] = useState<Initiative | null>(null);
   const [timelineView, setTimelineView] = useState<"quarters" | "months" | "weeks" | "days">("quarters");
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); // For daily view
   const [filters, setFilters] = useState({
-    teams: ["engineering", "design", "product", "marketing", "sales"],
+    teams: [] as string[],
     priorities: ["high", "medium", "low"],
     search: "",
   });
@@ -27,6 +29,20 @@ export default function Roadmap() {
   const { data: initiatives = [], isLoading } = useQuery<Initiative[]>({
     queryKey: ["/api/initiatives"],
   });
+
+  const { data: teams = [], isLoading: teamsLoading } = useQuery<Team[]>({
+    queryKey: ["/api/teams"],
+  });
+
+  // Initialize team filters when teams are loaded
+  useEffect(() => {
+    if (teams.length > 0 && filters.teams.length === 0) {
+      setFilters(prev => ({
+        ...prev,
+        teams: teams.map(team => team.id)
+      }));
+    }
+  }, [teams, filters.teams.length]);
 
   const updateInitiativeMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Initiative> }) => {
@@ -58,12 +74,10 @@ export default function Roadmap() {
     return matchesTeam && matchesPriority && matchesSearch;
   });
 
-  const teams = [
-    { id: "engineering", name: "Engineering", count: filteredInitiatives.filter(i => i.team === "engineering").length },
-    { id: "design", name: "Design", count: filteredInitiatives.filter(i => i.team === "design").length },
-    { id: "product", name: "Product", count: filteredInitiatives.filter(i => i.team === "product").length },
-    { id: "marketing", name: "Marketing", count: filteredInitiatives.filter(i => i.team === "marketing").length },
-  ];
+  const teamsWithCounts = teams.map(team => ({
+    ...team,
+    count: filteredInitiatives.filter(i => i.team === team.id).length
+  }));
 
   const handleDragStart = (initiative: Initiative, e: React.DragEvent) => {
     setDraggingInitiative(initiative);
@@ -78,7 +92,7 @@ export default function Roadmap() {
     
     // Handle team changes
     if (initiative.team !== teamId) {
-      updates.team = teamId as "engineering" | "design" | "product" | "marketing" | "sales";
+      updates.team = teamId;
     }
 
     // Handle period changes based on timeline view
@@ -115,6 +129,19 @@ export default function Roadmap() {
       else if (month >= 3 && month <= 5) updates.quarter = "Q2";
       else if (month >= 6 && month <= 8) updates.quarter = "Q3";
       else if (month >= 9 && month <= 11) updates.quarter = "Q4";
+    } else if (timelineView === "days") {
+      // For days, set specific day
+      const dayNum = parseInt(period.substring(1));
+      const targetDate = new Date(2024, selectedMonth, dayNum);
+      
+      updates.startDate = targetDate.toISOString().split('T')[0];
+      updates.endDate = targetDate.toISOString().split('T')[0];
+      
+      // Update quarter based on the month
+      if (selectedMonth >= 0 && selectedMonth <= 2) updates.quarter = "Q1";
+      else if (selectedMonth >= 3 && selectedMonth <= 5) updates.quarter = "Q2";
+      else if (selectedMonth >= 6 && selectedMonth <= 8) updates.quarter = "Q3";
+      else if (selectedMonth >= 9 && selectedMonth <= 11) updates.quarter = "Q4";
     }
 
     // Only update if there are changes
@@ -141,7 +168,7 @@ export default function Roadmap() {
     });
   };
 
-  if (isLoading) {
+  if (isLoading || teamsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-muted-foreground">Loading roadmap...</div>
@@ -161,6 +188,15 @@ export default function Roadmap() {
             </div>
           </div>
           <div className="flex items-center space-x-3">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setIsTeamModalOpen(true)}
+              data-testid="button-manage-teams"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Manage Teams
+            </Button>
             <Button 
               variant="secondary" 
               size="sm" 
@@ -191,6 +227,7 @@ export default function Roadmap() {
           filters={filters}
           onFiltersChange={setFilters}
           initiatives={filteredInitiatives}
+          teams={teams}
         />
 
         {/* Main Timeline */}
@@ -198,16 +235,19 @@ export default function Roadmap() {
           <TimelineHeader 
             timelineView={timelineView}
             onTimelineViewChange={setTimelineView}
+            selectedMonth={selectedMonth}
+            onMonthChange={setSelectedMonth}
           />
           
           <div className="p-6">
             <div className="space-y-8">
-              {teams.map(team => (
+              {teamsWithCounts.map(team => (
                 <TeamSection
                   key={team.id}
                   team={team}
                   initiatives={filteredInitiatives.filter(i => i.team === team.id)}
                   timelineView={timelineView}
+                  selectedMonth={selectedMonth}
                   onDrop={handleDrop}
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
@@ -222,6 +262,12 @@ export default function Roadmap() {
       <NewInitiativeModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        teams={teams}
+      />
+
+      <TeamManagementModal 
+        isOpen={isTeamModalOpen}
+        onClose={() => setIsTeamModalOpen(false)}
       />
     </div>
   );

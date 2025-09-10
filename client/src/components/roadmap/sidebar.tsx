@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Initiative } from "@shared/schema";
+import { Initiative, Team } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Search } from "lucide-react";
@@ -12,15 +12,15 @@ interface SidebarProps {
   };
   onFiltersChange: (filters: any) => void;
   initiatives: Initiative[];
+  teams: Team[];
 }
 
-export default function Sidebar({ filters, onFiltersChange, initiatives }: SidebarProps) {
-  const teamOptions = [
-    { id: "engineering", name: "Engineering", color: "bg-team-engineering" },
-    { id: "design", name: "Design", color: "bg-team-design" },
-    { id: "marketing", name: "Marketing", color: "bg-team-marketing" },
-    { id: "product", name: "Product", color: "bg-team-product" },
-  ];
+export default function Sidebar({ filters, onFiltersChange, initiatives, teams }: SidebarProps) {
+  const teamOptions = teams.map(team => ({
+    id: team.id,
+    name: team.name,
+    color: team.color,
+  }));
 
   const priorityOptions = [
     { id: "high", name: "High", color: "bg-priority-high" },
@@ -73,7 +73,10 @@ export default function Sidebar({ filters, onFiltersChange, initiatives }: Sideb
                     onCheckedChange={() => handleTeamToggle(team.id)}
                     data-testid={`checkbox-team-${team.id}`}
                   />
-                  <div className={`w-3 h-3 rounded ${team.color}`}></div>
+                  <div 
+                    className="w-3 h-3 rounded" 
+                    style={{ backgroundColor: team.color }}
+                  ></div>
                   <span className="text-sm">{team.name}</span>
                   <span className="text-xs text-muted-foreground">({getTeamCount(team.id)})</span>
                 </label>

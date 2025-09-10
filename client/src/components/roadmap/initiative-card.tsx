@@ -2,6 +2,7 @@ import { Initiative } from "@shared/schema";
 
 interface InitiativeCardProps {
   initiative: Initiative;
+  teamColor?: string;
   onDragStart?: (initiative: Initiative, e: React.DragEvent) => void;
   onDragEnd?: (e: React.DragEvent) => void;
   isDragging?: boolean;
@@ -9,20 +10,11 @@ interface InitiativeCardProps {
 
 export default function InitiativeCard({ 
   initiative, 
+  teamColor,
   onDragStart, 
   onDragEnd, 
   isDragging = false 
 }: InitiativeCardProps) {
-  const getTeamColor = (team: string) => {
-    const colors = {
-      engineering: "border-l-team-engineering",
-      design: "border-l-team-design", 
-      marketing: "border-l-team-marketing",
-      product: "border-l-team-product",
-      sales: "border-l-team-sales",
-    };
-    return colors[team as keyof typeof colors] || "border-l-gray-400";
-  };
 
   const getPriorityColor = (priority: string) => {
     const colors = {
@@ -54,7 +46,8 @@ export default function InitiativeCard({
 
   return (
     <div 
-      className={`draggable bg-card border border-border border-l-4 ${getTeamColor(initiative.team)} rounded-lg p-3 shadow-sm cursor-grab hover:shadow-md transition-all duration-200 hover:-translate-y-1 ${isDragging ? 'dragging opacity-50' : ''}`}
+      className={`draggable bg-card border border-border border-l-4 rounded-lg p-3 shadow-sm cursor-grab hover:shadow-md transition-all duration-200 hover:-translate-y-1 ${isDragging ? 'dragging opacity-50' : ''}`}
+      style={{ borderLeftColor: teamColor || "#6b7280" }}
       data-team={initiative.team}
       data-priority={initiative.priority}
       data-testid={`card-initiative-${initiative.id}`}
@@ -79,7 +72,7 @@ export default function InitiativeCard({
         </span>
         
         <div className="flex -space-x-1">
-          {(initiative.assignees || []).slice(0, 3).map((assignee, index) => (
+          {(initiative.assignees || []).slice(0, 3).map((assignee: string, index: number) => (
             <div 
               key={assignee}
               className="w-5 h-5 bg-primary rounded-full border-2 border-white text-xs text-primary-foreground flex items-center justify-center"

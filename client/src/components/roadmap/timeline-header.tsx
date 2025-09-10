@@ -1,13 +1,17 @@
 import { Button } from "@/components/ui/button";
 
 interface TimelineHeaderProps {
-  timelineView: "quarters" | "months" | "weeks";
-  onTimelineViewChange: (view: "quarters" | "months" | "weeks") => void;
+  timelineView: "quarters" | "months" | "weeks" | "days";
+  onTimelineViewChange: (view: "quarters" | "months" | "weeks" | "days") => void;
+  selectedMonth?: number;
+  onMonthChange?: (month: number) => void;
 }
 
 export default function TimelineHeader({ 
   timelineView, 
-  onTimelineViewChange 
+  onTimelineViewChange,
+  selectedMonth = 0,
+  onMonthChange
 }: TimelineHeaderProps) {
   return (
     <div className="bg-card border-b border-border sticky top-0 z-30">
@@ -39,6 +43,14 @@ export default function TimelineHeader({
               data-testid="button-weeks"
             >
               Weeks
+            </Button>
+            <Button 
+              variant={timelineView === "days" ? "secondary" : "ghost"} 
+              size="sm" 
+              onClick={() => onTimelineViewChange("days")}
+              data-testid="button-days"
+            >
+              Days
             </Button>
           </div>
         </div>
@@ -92,6 +104,40 @@ export default function TimelineHeader({
                 <div key={weekNum} className={`px-1 py-3 text-center ${index < 51 ? 'border-r border-border' : ''}`}>
                   <div className="font-semibold text-foreground text-xs">W{weekNum}</div>
                   <div className="text-xs text-muted-foreground">{monthName}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {timelineView === "days" && (
+          <div className="flex items-center space-x-4 mb-4">
+            <select 
+              value={selectedMonth} 
+              onChange={(e) => onMonthChange?.(parseInt(e.target.value))}
+              className="px-3 py-1 border border-border rounded bg-background text-foreground"
+            >
+              {[
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+              ].map((month, index) => (
+                <option key={index} value={index}>{month} 2024</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {timelineView === "days" && (
+          <div className="grid gap-0 min-w-max overflow-x-auto" style={{ gridTemplateColumns: 'repeat(31, minmax(60px, 1fr))' }}>
+            {Array.from({ length: new Date(2024, selectedMonth + 1, 0).getDate() }, (_, index) => {
+              const day = index + 1;
+              const date = new Date(2024, selectedMonth, day);
+              const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+              
+              return (
+                <div key={day} className={`px-1 py-3 text-center ${index < new Date(2024, selectedMonth + 1, 0).getDate() - 1 ? 'border-r border-border' : ''}`}>
+                  <div className="font-semibold text-foreground text-xs">{day}</div>
+                  <div className="text-xs text-muted-foreground">{dayName}</div>
                 </div>
               );
             })}

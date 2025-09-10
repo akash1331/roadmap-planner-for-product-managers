@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { insertInitiativeSchema, type InsertInitiative } from "@shared/schema";
+import { insertInitiativeSchema, type InsertInitiative, type Team } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,10 @@ import { X } from "lucide-react";
 interface NewInitiativeModalProps {
   isOpen: boolean;
   onClose: () => void;
+  teams: Team[];
 }
 
-export default function NewInitiativeModal({ isOpen, onClose }: NewInitiativeModalProps) {
+export default function NewInitiativeModal({ isOpen, onClose, teams }: NewInitiativeModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -170,11 +171,11 @@ export default function NewInitiativeModal({ isOpen, onClose }: NewInitiativeMod
                   <SelectValue placeholder="Select team" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="engineering">Engineering</SelectItem>
-                  <SelectItem value="design">Design</SelectItem>
-                  <SelectItem value="product">Product</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="sales">Sales</SelectItem>
+                  {teams.map(team => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {errors.team && <p className="text-sm text-destructive mt-1">{errors.team}</p>}
