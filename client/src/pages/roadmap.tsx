@@ -72,20 +72,54 @@ export default function Roadmap() {
     setDraggingInitiative(null);
   };
 
-  const handleDrop = (quarter: string, teamId: string, initiative: Initiative) => {
-    if (initiative.quarter === quarter && initiative.team === teamId) {
-      return; // No change needed
-    }
-
+  const handleDrop = (period: string, teamId: string, initiative: Initiative) => {
     const updates: Partial<Initiative> = {};
-    if (initiative.quarter !== quarter) {
-      updates.quarter = quarter as "Q1" | "Q2" | "Q3" | "Q4";
-    }
+    
+    // Handle team changes
     if (initiative.team !== teamId) {
       updates.team = teamId as "engineering" | "design" | "product" | "marketing" | "sales";
     }
 
-    updateInitiativeMutation.mutate({ id: initiative.id, updates });
+    // Handle period changes based on timeline view
+    if (timelineView === "quarters") {
+      if (initiative.quarter !== period) {
+        updates.quarter = period as "Q1" | "Q2" | "Q3" | "Q4";
+      }
+    } else if (timelineView === "months") {
+      // For months, update the start/end dates to be within that month
+      const monthIndex = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].indexOf(period);
+      const startOfMonth = new Date(2024, monthIndex, 1);
+      const endOfMonth = new Date(2024, monthIndex + 1, 0);
+      
+      updates.startDate = startOfMonth.toISOString().split('T')[0];
+      updates.endDate = endOfMonth.toISOString().split('T')[0];
+      
+      // Update quarter based on the month
+      if (monthIndex >= 0 && monthIndex <= 2) updates.quarter = "Q1";
+      else if (monthIndex >= 3 && monthIndex <= 5) updates.quarter = "Q2";
+      else if (monthIndex >= 6 && monthIndex <= 8) updates.quarter = "Q3";
+      else if (monthIndex >= 9 && monthIndex <= 11) updates.quarter = "Q4";
+    } else if (timelineView === "weeks") {
+      // For weeks, calculate dates within that week
+      const weekNum = parseInt(period.substring(1));
+      const startOfWeek = new Date(2024, 0, 1 + (weekNum - 1) * 7);
+      const endOfWeek = new Date(2024, 0, 1 + weekNum * 7 - 1);
+      
+      updates.startDate = startOfWeek.toISOString().split('T')[0];
+      updates.endDate = endOfWeek.toISOString().split('T')[0];
+      
+      // Update quarter based on the week
+      const month = startOfWeek.getMonth();
+      if (month >= 0 && month <= 2) updates.quarter = "Q1";
+      else if (month >= 3 && month <= 5) updates.quarter = "Q2";
+      else if (month >= 6 && month <= 8) updates.quarter = "Q3";
+      else if (month >= 9 && month <= 11) updates.quarter = "Q4";
+    }
+
+    // Only update if there are changes
+    if (Object.keys(updates).length > 0) {
+      updateInitiativeMutation.mutate({ id: initiative.id, updates });
+    }
   };
 
   const handleExport = () => {
@@ -172,6 +206,7 @@ export default function Roadmap() {
                   key={team.id}
                   team={team}
                   initiatives={filteredInitiatives.filter(i => i.team === team.id)}
+                  timelineView={timelineView}
                   onDrop={handleDrop}
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
