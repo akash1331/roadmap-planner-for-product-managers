@@ -138,9 +138,15 @@
   }
   
   .dragging {
-    opacity: 0.8;
-    transform: rotate(5deg);
+    opacity: 0.6;
+    transform: rotate(5deg) scale(1.05);
     cursor: grabbing;
+    z-index: 50;
+  }
+  
+  .drop-zone-active {
+    background-color: hsl(var(--primary) / 0.1);
+    border: 2px dashed hsl(var(--primary) / 0.5);
   }
   
   .modal-backdrop {
