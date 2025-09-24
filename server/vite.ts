@@ -50,14 +50,14 @@ export async function setupVite(app: Express, server: Server) {
 
     try {
       const clientTemplate = fileURLToPath(
-        new URL("../client/index.html", import.meta.url),
+        new URL("../client/index.html", import.meta.url)
       );
 
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid()}"`,
+        `src="/src/main.tsx?v=${nanoid()}"`
       );
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
@@ -69,18 +69,44 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = fileURLToPath(new URL("./public", import.meta.url));
+  // FIXED: Correct path to the built public directory
+  const distPath = path.join(__dirname, "public");
+
+  // Alternative more robust path resolution:
+  // const distPath = path.resolve(__dirname, '../public');
+
+  log(`Looking for static files in: ${distPath}`);
 
   if (!fs.existsSync(distPath)) {
+    log(`Build directory not found: ${distPath}`, "vite");
+    log("Current working directory: " + process.cwd(), "vite");
+    log("Directory contents of dist folder:", "vite");
+
+    const distDir = path.dirname(distPath);
+    if (fs.existsSync(distDir)) {
+      const files = fs.readdirSync(distDir);
+      log(`Files in dist: ${files.join(", ")}`, "vite");
+    }
+
     throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+      `Could not find the build directory: ${distPath}, make sure to build the client first with 'npm run build'`
     );
   }
+
+  // Log what files are found
+  const files = fs.readdirSync(distPath);
+  log(`Found static files: ${files.join(", ")}`, "vite");
 
   app.use(express.static(distPath));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
+    log(
+      `Serving index.html from: ${path.resolve(distPath, "index.html")}`,
+      "vite"
+    );
     res.sendFile(path.resolve(distPath, "index.html"));
   });
+
+  log(`Static file serving configured from: ${distPath}`, "vite");
 }
